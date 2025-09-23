@@ -1,0 +1,11 @@
+2025-09-23 15:39:19,132 - email_processor - INFO - Email processor initialized
+2025-09-23 15:39:19,133 - email_processor - INFO - Configuration loaded - checking every 5 minutes
+2025-09-23 15:39:19,134 - email_processor - INFO - All services initialized successfully
+2025-09-23 15:39:19,159 - email_processor - INFO - Email processor initialized
+2025-09-23 15:39:19,159 - email_processor - INFO - Configuration loaded - checking every 5 minutes
+2025-09-23 15:39:19,160 - email_processor - INFO - All services initialized successfully
+2025-09-23 15:39:19,160 - email_processor - INFO - Starting email processing cycle
+2025-09-23 15:39:19,161 - email_processor - INFO - No new emails found
+2025-09-23 15:39:19,178 - csv_processor - INFO - Processing 2 CSV rows
+2025-09-23 15:39:19,179 - csv_processor - INFO - Successfully processed 2 rows
+2025-09-23 15:39:19,179 - csv_processor - INFO - Created output CSV with 2 rows
