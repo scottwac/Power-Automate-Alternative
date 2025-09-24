@@ -167,7 +167,7 @@ class EmailProcessor:
                 from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
-                has_attachments=False,  # Changed to False since we're looking for SET files, not CSV attachments
+                has_attachments=True,  # Look for emails WITH CSV attachments
                 since_minutes=None  # Look for any emails with this subject
             )
             
@@ -212,52 +212,38 @@ class EmailProcessor:
     
     def process_matrixcare_email(self, message: Dict):
         """
-        Process MatrixCare Looker Dash email and append data to Google Sheet.
+        Process MatrixCare Looker Dash email with CSV attachments.
         
         Args:
-            message: Message dictionary
+            message: Message dictionary with attachments
         """
         try:
             self.logger.info("Processing MatrixCare Looker Dash email")
             
-            # Get email content
-            email_content = message.get('body', '')
             email_subject = message.get('subject', '')
             email_from = message.get('from', '')
+            attachments = message.get('attachments', [])
             
-            if not email_content.strip():
-                self.logger.warning("Email has no content")
+            if not attachments:
+                self.logger.warning("No attachments found in MatrixCare email")
                 return
             
-            # Create data row for the Google Sheet
-            from datetime import datetime
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            self.logger.info(f"Found {len(attachments)} attachments")
             
-            # Prepare data for Google Sheets - customize this based on what data you want to extract
-            data_row = [
-                timestamp,
-                email_from,
-                email_subject,
-                email_content[:1000],  # Limit content to first 1000 chars
-                'Processed'
-            ]
-            
-            # Append to Google Sheet if target spreadsheet is configured
-            if self.target_spreadsheet_id:
-                success = self.sheets_service.append_data_to_sheet(
-                    spreadsheet_id=self.target_spreadsheet_id,
-                    data=[data_row],  # Pass as list of rows
-                    sheet_name='Sheet1'
-                )
-                
-                if success:
-                    self.logger.info(f"Successfully appended MatrixCare data to Google Sheet")
-                    self.logger.info(f"Spreadsheet URL: https://docs.google.com/spreadsheets/d/{self.target_spreadsheet_id}/edit")
+            # Process each CSV attachment
+            csv_processed = False
+            for attachment in attachments:
+                filename = attachment.get('filename', '')
+                if filename.lower().endswith('.csv'):
+                    self.logger.info(f"Processing CSV attachment: {filename}")
+                    self.process_csv_attachment(attachment, message)
+                    csv_processed = True
                 else:
-                    self.logger.error("Failed to append data to Google Sheet")
-            else:
-                self.logger.warning("No target spreadsheet ID configured - cannot append data")
+                    self.logger.info(f"Skipping non-CSV attachment: {filename}")
             
+            if not csv_processed:
+                self.logger.warning("No CSV attachments found to process")
+                
         except Exception as e:
             self.logger.error(f"Error processing MatrixCare email: {e}")
     
@@ -530,7 +516,7 @@ class EmailProcessor:
                 from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
-                has_attachments=False,  # Changed to False since we're looking for SET files, not CSV attachments
+                has_attachments=True,  # Look for emails WITH CSV attachments
                 since_minutes=None  # Look for any emails with this subject
             )
             

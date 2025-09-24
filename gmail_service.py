@@ -163,6 +163,9 @@ class GmailService:
             if 'parts' in payload:
                 extract_attachments(payload['parts'])
             
+            # Extract email body content
+            body_content = self._extract_email_body(payload)
+            
             return {
                 'id': message_id,
                 'subject': next((h['value'] for h in message['payload']['headers'] 
@@ -171,6 +174,7 @@ class GmailService:
                              if h['name'] == 'From'), ''),
                 'date': next((h['value'] for h in message['payload']['headers'] 
                              if h['name'] == 'Date'), ''),
+                'body': body_content,
                 'attachments': attachments
             }
             
