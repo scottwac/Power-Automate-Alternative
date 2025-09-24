@@ -14,6 +14,7 @@ GOOGLE_SHEETS_SPREADSHEET_ID=1tQT3x-X9NxK_Rfg4uYhz71kvFrNbPXR-Wo3QBvaKdGQ
 # Email Configuration
 GMAIL_SUBJECT_FILTER=MatrixCare Automation for Looker Dash
 GMAIL_FROM_EMAIL=growatorchard@gmail.com
+# Note: System now accepts emails from ANY sender with the target subject
 GMAIL_LABEL=INBOX
 
 # Google Drive Configuration

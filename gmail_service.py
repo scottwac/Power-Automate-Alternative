@@ -57,8 +57,8 @@ class GmailService:
         logger.info("Gmail service authenticated successfully")
     
     def search_emails(self, 
-                     from_email: str, 
-                     subject: str, 
+                     from_email: str = None, 
+                     subject: str = None, 
                      label: str = 'INBOX',
                      has_attachments: bool = True,
                      since_minutes: int = 5) -> List[str]:
@@ -66,8 +66,8 @@ class GmailService:
         Search for emails matching criteria.
         
         Args:
-            from_email: Email address to filter by
-            subject: Subject line to filter by
+            from_email: Email address to filter by (optional - if None, searches all senders)
+            subject: Subject line to filter by (optional)
             label: Gmail label to search in
             has_attachments: Whether to filter for emails with attachments
             since_minutes: Look for emails from this many minutes ago
@@ -78,17 +78,22 @@ class GmailService:
         try:
             # Build search query
             query_parts = [
-                f'from:{from_email}',
-                f'subject:{subject}',
                 f'label:{label}'
             ]
+            
+            if from_email:
+                query_parts.append(f'from:{from_email}')
+            
+            if subject:
+                query_parts.append(f'subject:{subject}')
             
             if has_attachments:
                 query_parts.append('has:attachment')
             
-            # Add time filter (last X minutes)
-            since_time = datetime.now() - timedelta(minutes=since_minutes)
-            query_parts.append(f'after:{int(since_time.timestamp())}')
+            # Add time filter (last X minutes) if specified
+            if since_minutes is not None:
+                since_time = datetime.now() - timedelta(minutes=since_minutes)
+                query_parts.append(f'after:{int(since_time.timestamp())}')
             
             query = ' '.join(query_parts)
             logger.info(f"Searching emails with query: {query}")

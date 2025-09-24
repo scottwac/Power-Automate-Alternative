@@ -77,6 +77,12 @@ python email_processor.py --test-auth
 # Run once to test functionality
 python email_processor.py --once
 
+# Run with custom time (e.g., 2:30 PM EST)
+python email_processor.py --custom-time 14:30
+
+# Test timing - check for emails in exactly 2 minutes (useful for testing)
+python email_processor.py --check-in-2min
+
 # Run the unit test to verify scheduling
 cd "unit testing"
 python run_matrixcare_test.py
@@ -86,8 +92,41 @@ python run_matrixcare_test.py
 For continuous operation:
 
 ```bash
+# Use default schedule (Tuesdays at 11:20 AM and 12:00 PM EST)
 python email_processor.py
+
+# Or use custom time (example: 2:30 PM EST every other Tuesday)
+python email_processor.py --custom-time 14:30
 ```
+
+### Command Line Options
+
+Available command line arguments:
+
+```bash
+# Show help and all available options
+python email_processor.py --help
+
+# Test authentication only (no email processing)
+python email_processor.py --test-auth
+
+# Run once and exit (no scheduling)
+python email_processor.py --once
+
+# Manually check for emails (bypass schedule)
+python email_processor.py --manual-check
+
+# Test timing - check in exactly 2 minutes (great for testing)
+python email_processor.py --check-in-2min
+
+# Run on custom schedule (specify time in EST, 24-hour format)
+python email_processor.py --custom-time HH:MM
+```
+
+**Custom Time Examples:**
+- `--custom-time 09:00` = 9:00 AM EST
+- `--custom-time 14:30` = 2:30 PM EST
+- `--custom-time 23:45` = 11:45 PM EST
 
 The program will output logs showing:
 - When it's checking for emails
@@ -101,7 +140,7 @@ Make sure these environment variables are set (or use the defaults):
 ```env
 # Email settings
 GMAIL_SUBJECT_FILTER=MatrixCare Automation for Looker Dash
-GMAIL_FROM_EMAIL=growatorchard@gmail.com
+GMAIL_FROM_EMAIL=growatorchard@gmail.com  # Note: System now accepts emails from ANY sender with target subject
 
 # Google Drive folder
 GOOGLE_DRIVE_FOLDER_ID=1xrzn2LZ-URdb1nx_7MspHyytq6LVk1iq

@@ -13,6 +13,7 @@ import os
 import sys
 import time
 import logging
+import pytz
 import schedule
 from datetime import datetime, timedelta
 from typing import List, Dict
@@ -161,9 +162,9 @@ class EmailProcessor:
             
             self.logger.info("Starting email processing cycle")
             
-            # Search for new emails - look for emails from any time (not just recent)
+            # Search for new emails - look for emails from any sender with target subject
             message_ids = self.gmail_service.search_emails(
-                from_email=self.gmail_from_email,
+                from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
                 has_attachments=False,  # Changed to False since we're looking for SET files, not CSV attachments
@@ -391,9 +392,9 @@ class EmailProcessor:
         try:
             self.logger.info("Starting manual email check (bypassing schedule)")
             
-            # Search for emails - look for emails from the last 7 days
+            # Search for emails - look for emails from any sender in the last 7 days
             message_ids = self.gmail_service.search_emails(
-                from_email=self.gmail_from_email,
+                from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
                 has_attachments=False,
@@ -430,6 +431,79 @@ class EmailProcessor:
         while True:
             schedule.run_pending()
             time.sleep(60)  # Check every minute
+    
+    def run_custom_schedule(self, est_time: str):
+        """Run the processor at a custom time in EST timezone."""
+        try:
+            # Validate time format (HH:MM)
+            datetime.strptime(est_time, "%H:%M")
+        except ValueError:
+            raise ValueError("Time must be in HH:MM format (24-hour), e.g., '14:30' for 2:30 PM")
+        
+        # Convert EST time to local time for scheduling
+        est_tz = pytz.timezone('US/Eastern')
+        local_tz = pytz.timezone('UTC')  # Default to UTC, will be converted to system local time
+        
+        # Parse the EST time
+        est_hour, est_minute = map(int, est_time.split(':'))
+        
+        # Create a datetime object for today at the specified EST time
+        today_est = datetime.now(est_tz).replace(hour=est_hour, minute=est_minute, second=0, microsecond=0)
+        
+        # Convert to local time
+        today_local = today_est.astimezone()
+        local_time_str = today_local.strftime("%H:%M")
+        
+        self.logger.info(f"Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at {est_time} EST ({local_time_str} local time)")
+        
+        # Schedule the job to run every Tuesday at the converted local time
+        schedule.every().tuesday.at(local_time_str).do(self.process_emails)
+        
+        # Run initial check
+        self.process_emails()
+        
+        # Keep the script running
+        while True:
+            schedule.run_pending()
+            time.sleep(60)  # Check every minute
+    
+    def check_in_2_minutes(self):
+        """Schedule an email check to run in exactly 2 minutes."""
+        # Calculate the time 2 minutes from now
+        check_time = datetime.now() + timedelta(minutes=2)
+        check_time_str = check_time.strftime("%H:%M")
+        
+        # Get current time for logging
+        current_time = datetime.now().strftime("%H:%M:%S")
+        
+        self.logger.info(f"Current time: {current_time}")
+        self.logger.info(f"Scheduling email check for {check_time_str} (in 2 minutes)")
+        
+        # Clear any existing scheduled jobs
+        schedule.clear()
+        
+        # Schedule the job for today at the calculated time
+        schedule.every().day.at(check_time_str).do(self.process_emails)
+        
+        print(f"⏰ Email check scheduled for {check_time_str} (in 2 minutes)")
+        print(f"   Current time: {current_time}")
+        print(f"   Will check for emails with subject: '{self.gmail_subject_filter}'")
+        print("   Waiting...")
+        
+        # Keep the script running until the scheduled time and a bit after
+        start_time = datetime.now()
+        max_wait_time = timedelta(minutes=5)  # Wait up to 5 minutes total
+        
+        while datetime.now() - start_time < max_wait_time:
+            schedule.run_pending()
+            time.sleep(10)  # Check every 10 seconds for more responsive timing
+            
+            # Check if we've passed the scheduled time by more than 1 minute
+            if datetime.now() > check_time + timedelta(minutes=1):
+                self.logger.info("Scheduled check completed, exiting")
+                break
+        
+        print("✅ 2-minute check completed")
 
 
 def main():
@@ -440,6 +514,10 @@ def main():
     parser.add_argument('--once', action='store_true', help='Run once instead of scheduled')
     parser.add_argument('--test-auth', action='store_true', help='Test authentication only')
     parser.add_argument('--manual-check', action='store_true', help='Manually check for emails regardless of schedule')
+    parser.add_argument('--custom-time', type=str, metavar='HH:MM', 
+                       help='Run on schedule at custom time in EST (24-hour format, e.g., 14:30 for 2:30 PM)')
+    parser.add_argument('--check-in-2min', action='store_true', 
+                       help='Check for emails in exactly 2 minutes from now (useful for testing)')
     
     args = parser.parse_args()
     
@@ -454,6 +532,10 @@ def main():
             processor.manual_email_check()
         elif args.once:
             processor.run_once()
+        elif args.check_in_2min:
+            processor.check_in_2_minutes()
+        elif args.custom_time:
+            processor.run_custom_schedule(args.custom_time)
         else:
             processor.run_scheduled()
             
