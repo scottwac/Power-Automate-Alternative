@@ -324,7 +324,7 @@ ps aux | grep -E "python.*email_processor" | grep -v grep | awk '{print "   CPU:
 
 echo ""
 echo "📝 Recent Logs (last 5 lines):"
-tail -5 ~/matrixcare-automation/email_processor.log 2>/dev/null | sed 's/^/   /' || echo "   No logs found"
+tail -5 $APP_DIR/email_processor.log 2>/dev/null | sed 's/^/   /' || echo "   No logs found"
 EOF
 
     chmod +x "$APP_DIR/status.sh"
@@ -352,18 +352,18 @@ case $choice in
         ;;
     2)
         echo "Press Ctrl+C to exit"
-        tail -f ~/matrixcare-automation/email_processor.log
+        tail -f $APP_DIR/email_processor.log
         ;;
     3)
-        tail -50 ~/matrixcare-automation/email_processor.log
+        tail -50 $APP_DIR/email_processor.log
         ;;
     4)
         echo "Searching for errors..."
-        grep -i "error\|fail\|exception" ~/matrixcare-automation/email_processor.log | tail -20
+        grep -i "error\|fail\|exception" $APP_DIR/email_processor.log | tail -20
         ;;
     5)
         read -p "Enter search term: " term
-        grep -i "$term" ~/matrixcare-automation/email_processor.log | tail -20
+        grep -i "$term" $APP_DIR/email_processor.log | tail -20
         ;;
     *)
         echo "Invalid choice"

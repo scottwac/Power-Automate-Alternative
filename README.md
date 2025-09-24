@@ -21,7 +21,12 @@ This system automatically:
 
 ### One-Command Deployment
 ```bash
-# Make deployment script executable and run
+# Clone repository and navigate to it
+git clone https://github.com/StarDuster01/Matt-Power-Automate-Alternative.git
+cd Matt-Power-Automate-Alternative
+
+# Upload your credential files (*.json) to this directory
+# Then make deployment script executable and run
 chmod +x deploy.sh
 ./deploy.sh
 ```
