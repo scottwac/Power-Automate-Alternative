@@ -16,7 +16,10 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 
 # Google Drive API scopes
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+SCOPES = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/spreadsheets'
+]
 
 logger = logging.getLogger(__name__)
 
@@ -154,3 +157,21 @@ class GoogleDriveService:
         """
         filename = self.create_timestamped_filename(prefix)
         return self.upload_file(csv_data, filename, 'text/csv', folder_id)
+    
+    def upload_set_with_timestamp(self, 
+                                 set_data: bytes, 
+                                 prefix: str = 'matrixcare_looker_data',
+                                 folder_id: Optional[str] = None) -> Optional[str]:
+        """
+        Upload SET file with automatic timestamp for MatrixCare Looker Dash.
+        
+        Args:
+            set_data: SET file content as bytes
+            prefix: Filename prefix
+            folder_id: Parent folder ID
+        
+        Returns:
+            File ID of uploaded file
+        """
+        filename = self.create_timestamped_filename(prefix, 'set')
+        return self.upload_file(set_data, filename, 'text/plain', folder_id)

@@ -168,3 +168,76 @@ class CSVProcessor:
         from datetime import datetime
         timestamp = datetime.utcnow().strftime('%Y-%m-%d_%HHmm')
         return f"Lead_Data_{timestamp}.csv"
+    
+    def prepare_sheets_data(self, processed_rows: List[Dict[str, str]]) -> tuple[List[str], List[List[str]]]:
+        """
+        Prepare data for Google Sheets format.
+        
+        Args:
+            processed_rows: List of processed row dictionaries
+        
+        Returns:
+            Tuple of (headers, data_rows) for Google Sheets
+        """
+        try:
+            if not processed_rows:
+                return [], []
+            
+            # Get headers from first row
+            headers = list(processed_rows[0].keys())
+            
+            # Convert rows to list of lists
+            data_rows = []
+            for row in processed_rows:
+                data_row = [row.get(header, '') for header in headers]
+                data_rows.append(data_row)
+            
+            logger.info(f"Prepared {len(data_rows)} rows for Google Sheets")
+            return headers, data_rows
+            
+        except Exception as e:
+            logger.error(f"Error preparing sheets data: {e}")
+            return [], []
+    
+    def generate_sheet_title(self) -> str:
+        """
+        Generate title for Google Sheet.
+        
+        Returns:
+            Sheet title with timestamp
+        """
+        from datetime import datetime
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+        return f"Lead Data - {timestamp}"
+    
+    def create_set_file(self, email_content: str) -> bytes:
+        """
+        Create SET file from email content for MatrixCare Looker Dash automation.
+        
+        Args:
+            email_content: The email body content
+        
+        Returns:
+            SET file data as bytes
+        """
+        try:
+            from datetime import datetime
+            
+            # Create SET file content with timestamp
+            timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+            
+            set_content = f"""# MatrixCare Looker Dashboard Data Set
+# Generated: {timestamp}
+# Email Subject: MatrixCare Automation for Looker Dash
+
+{email_content}
+
+# End of data set
+"""
+            
+            logger.info("Created SET file for MatrixCare Looker Dashboard")
+            return set_content.encode('utf-8')
+            
+        except Exception as e:
+            logger.error(f"Error creating SET file: {e}")
+            return b''
