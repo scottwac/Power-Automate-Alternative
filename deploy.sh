@@ -287,18 +287,18 @@ fi
 
 # Last activity
 echo "📅 Last Log Entry:"
-tail -1 ~/matrixcare-automation/email_processor.log 2>/dev/null || echo "   No logs found"
+tail -1 $APP_DIR/email_processor.log 2>/dev/null || echo "   No logs found"
 
 # Next scheduled run
 echo ""
 echo "⏰ Schedule Information:"
 python3 -c "
 import sys
-sys.path.append('$HOME/matrixcare-automation')
+sys.path.append('$APP_DIR')
 from datetime import date, timedelta
 from email_processor import EmailProcessor
 import os
-os.chdir('$HOME/matrixcare-automation')
+os.chdir('$APP_DIR')
 
 try:
     processor = EmailProcessor()
