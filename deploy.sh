@@ -194,7 +194,7 @@ Group=$USER
 WorkingDirectory=$APP_DIR
 Environment=PATH=$VENV_DIR/bin:\$PATH
 Environment=PYTHONPATH=$APP_DIR
-ExecStart=$VENV_DIR/bin/python email_processor.py
+ExecStart=$VENV_DIR/bin/python3 email_processor.py
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=10
