@@ -85,8 +85,8 @@ class CSVProcessor:
             csv_reader = csv.reader(StringIO(row_text))
             fields = next(csv_reader)
             
-            # Ensure we have enough fields
-            while len(fields) < 7:
+            # Ensure we have enough fields (now including Lead ID)
+            while len(fields) < 8:
                 fields.append('')
             
             # Map to the expected structure from Power Automate
@@ -97,7 +97,8 @@ class CSVProcessor:
                 'Classification': fields[3].strip(),
                 'TotalLeads': fields[4].strip(),
                 'SubSourceName': fields[5].strip(),
-                'SourceName': fields[6].strip()
+                'SourceName': fields[6].strip(),
+                'LeadID': fields[7].strip()  # Add Lead ID column
             }
             
             return lead_data

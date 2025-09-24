@@ -404,7 +404,11 @@ class GoogleSheetsService:
             ).execute()
             
             values = result.get('values', [])
-            logger.info(f"Retrieved {len(values)} existing rows from sheet")
+            logger.info(f"Retrieved {len(values)} existing rows from sheet '{sheet_name}'")
+            if values:
+                logger.info(f"First row sample: {values[0][:3] if len(values[0]) > 0 else 'Empty row'}")
+                if len(values) > 1:
+                    logger.info(f"Last row sample: {values[-1][:3] if len(values[-1]) > 0 else 'Empty row'}")
             return values
             
         except HttpError as error:
@@ -435,12 +439,22 @@ class GoogleSheetsService:
             # Get existing data
             existing_data = self.get_existing_data(spreadsheet_id, sheet_name)
             
-            # Create set of existing unique keys
+            # Create set of existing unique keys (skip header row if present)
             existing_keys = set()
-            for row in existing_data:
+            for i, row in enumerate(existing_data):
+                # Skip the first row if it looks like headers
+                if i == 0 and len(existing_data) > 1:
+                    # Check if first row contains "Lead ID" or similar headers
+                    if any('lead' in str(cell).lower() or 'id' in str(cell).lower() for cell in row if len(row) > max(unique_columns)):
+                        logger.info("Skipping header row in duplicate check")
+                        continue
+                
                 if len(row) > max(unique_columns):
                     key = tuple(str(row[i]) if i < len(row) else '' for i in unique_columns)
-                    existing_keys.add(key)
+                    if key and key != ('',):  # Skip empty keys
+                        existing_keys.add(key)
+            
+            logger.info(f"Found {len(existing_keys)} existing unique Lead IDs in sheet")
             
             # Filter out duplicates
             new_data = []
