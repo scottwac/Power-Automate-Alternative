@@ -42,8 +42,7 @@ class CSVProcessor:
             if len(lines) > 1:
                 lines = lines[1:]  # Skip header
             
-            # Take maximum number of rows (similar to take(skip(...), 5000))
-            lines = lines[:self.max_rows]
+            # Process ALL rows (no limit)
             
             # Filter out empty lines
             lines = [line.strip() for line in lines if line.strip()]

@@ -384,3 +384,81 @@ class GoogleSheetsService:
         except HttpError as error:
             logger.error(f"Error appending data to sheet: {error}")
             return False
+    
+    def get_existing_data(self, spreadsheet_id: str, sheet_name: str = 'Sheet1') -> List[List[str]]:
+        """
+        Get existing data from a sheet to check for duplicates.
+        
+        Args:
+            spreadsheet_id: The spreadsheet ID
+            sheet_name: Name of the sheet
+        
+        Returns:
+            List of existing rows
+        """
+        try:
+            range_name = f"{sheet_name}!A:Z"
+            result = self.service.spreadsheets().values().get(
+                spreadsheetId=spreadsheet_id,
+                range=range_name
+            ).execute()
+            
+            values = result.get('values', [])
+            logger.info(f"Retrieved {len(values)} existing rows from sheet")
+            return values
+            
+        except HttpError as error:
+            logger.error(f"Error getting existing data: {error}")
+            return []
+    
+    def append_data_without_duplicates(self, 
+                                      spreadsheet_id: str, 
+                                      data: List[List[Any]], 
+                                      sheet_name: str = 'Sheet1',
+                                      unique_columns: List[int] = None) -> bool:
+        """
+        Append data to sheet while avoiding duplicates.
+        
+        Args:
+            spreadsheet_id: The spreadsheet ID
+            data: Data to append
+            sheet_name: Name of the sheet
+            unique_columns: List of column indices to check for uniqueness (0-based)
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if not unique_columns:
+                unique_columns = [0]  # Default to first column
+            
+            # Get existing data
+            existing_data = self.get_existing_data(spreadsheet_id, sheet_name)
+            
+            # Create set of existing unique keys
+            existing_keys = set()
+            for row in existing_data:
+                if len(row) > max(unique_columns):
+                    key = tuple(str(row[i]) if i < len(row) else '' for i in unique_columns)
+                    existing_keys.add(key)
+            
+            # Filter out duplicates
+            new_data = []
+            for row in data:
+                key = tuple(str(row[i]) if i < len(row) else '' for i in unique_columns)
+                if key not in existing_keys:
+                    new_data.append(row)
+                    existing_keys.add(key)  # Add to set to prevent duplicates within this batch
+            
+            if not new_data:
+                logger.info("No new data to append (all rows already exist)")
+                return True
+            
+            logger.info(f"Appending {len(new_data)} new rows (filtered out {len(data) - len(new_data)} duplicates)")
+            
+            # Append only new data
+            return self.append_data_to_sheet(spreadsheet_id, new_data, sheet_name)
+            
+        except Exception as error:
+            logger.error(f"Error appending data without duplicates: {error}")
+            return False

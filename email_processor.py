@@ -292,11 +292,12 @@ class EmailProcessor:
                 headers, data_rows = self.csv_processor.prepare_sheets_data(processed_rows)
                 
                 if self.target_spreadsheet_id:
-                    # Append to existing spreadsheet
-                    success = self.sheets_service.append_data_to_sheet(
+                    # Append to existing spreadsheet without duplicates
+                    success = self.sheets_service.append_data_without_duplicates(
                         spreadsheet_id=self.target_spreadsheet_id,
                         data=data_rows,
-                        sheet_name='Sheet1'
+                        sheet_name='Sheet1',
+                        unique_columns=[0, 1]  # Use first two columns for uniqueness check
                     )
                     
                     if success:
