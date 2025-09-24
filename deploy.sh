@@ -179,6 +179,13 @@ test_authentication() {
 create_systemd_service() {
     print_step "Creating systemd service..."
     
+    # Detect the correct Python executable
+    source "$VENV_DIR/bin/activate"
+    PYTHON_EXEC=$(which python3)
+    deactivate
+    
+    print_step "Using Python executable: $PYTHON_EXEC"
+    
     # Create service file
     sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null << EOF
 [Unit]
@@ -194,7 +201,7 @@ Group=$USER
 WorkingDirectory=$APP_DIR
 Environment=PATH=$VENV_DIR/bin:\$PATH
 Environment=PYTHONPATH=$APP_DIR
-ExecStart=/usr/bin/python3 email_processor.py
+ExecStart=$PYTHON_EXEC email_processor.py
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=10
