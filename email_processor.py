@@ -391,13 +391,13 @@ class EmailProcessor:
         try:
             self.logger.info("Starting manual email check (bypassing schedule)")
             
-            # Search for emails - look for emails from any time
+            # Search for emails - look for emails from the last 7 days
             message_ids = self.gmail_service.search_emails(
                 from_email=self.gmail_from_email,
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
                 has_attachments=False,
-                since_minutes=None  # Look for any emails with this subject
+                since_minutes=7 * 24 * 60  # Look for emails from last 7 days
             )
             
             if not message_ids:
