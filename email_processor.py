@@ -506,6 +506,41 @@ class EmailProcessor:
         print("✅ 2-minute check completed")
 
 
+def show_time_info():
+    """Display current system time and timezone information."""
+    import platform
+    
+    # Get current time in different formats
+    now = datetime.now()
+    utc_now = datetime.utcnow()
+    
+    # Get EST time
+    est_tz = pytz.timezone('US/Eastern')
+    est_now = now.astimezone(est_tz)
+    
+    print("🕐 Current Time Information")
+    print("=" * 50)
+    print(f"System Local Time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    print(f"UTC Time:          {utc_now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    print(f"EST Time:          {est_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    print(f"System Timezone:   {now.astimezone().tzinfo}")
+    print(f"Platform:          {platform.system()} {platform.release()}")
+    
+    # Show day of week for schedule checking
+    weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    print(f"Day of Week:       {weekday_names[now.weekday()]} (weekday {now.weekday()})")
+    
+    # Calculate next Tuesday for reference
+    days_until_tuesday = (1 - now.weekday()) % 7
+    if days_until_tuesday == 0 and now.weekday() == 1:
+        print(f"Today Status:      Today IS Tuesday!")
+    else:
+        next_tuesday = now + timedelta(days=days_until_tuesday)
+        print(f"Next Tuesday:      {next_tuesday.strftime('%Y-%m-%d')}")
+    
+    print("=" * 50)
+
+
 def main():
     """Main entry point."""
     import argparse
@@ -518,6 +553,8 @@ def main():
                        help='Run on schedule at custom time in EST (24-hour format, e.g., 14:30 for 2:30 PM)')
     parser.add_argument('--check-in-2min', action='store_true', 
                        help='Check for emails in exactly 2 minutes from now (useful for testing)')
+    parser.add_argument('--show-time', action='store_true', 
+                       help='Show current system time and timezone information')
     
     args = parser.parse_args()
     
@@ -526,6 +563,10 @@ def main():
         
         if args.test_auth:
             print("✅ Authentication successful for Gmail, Google Drive, and Google Sheets")
+            return
+        
+        if args.show_time:
+            show_time_info()
             return
         
         if args.manual_check:

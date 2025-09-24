@@ -119,6 +119,9 @@ python email_processor.py --manual-check
 # Test timing - check in exactly 2 minutes (great for testing)
 python email_processor.py --check-in-2min
 
+# Show current system time and timezone info
+python email_processor.py --show-time
+
 # Run on custom schedule (specify time in EST, 24-hour format)
 python email_processor.py --custom-time HH:MM
 ```
@@ -151,6 +154,59 @@ GOOGLE_SHEETS_SPREADSHEET_ID=your_spreadsheet_id_here
 # Logging
 LOG_LEVEL=INFO
 LOG_FILE=email_processor.log
+```
+
+## Testing Workflow
+
+### Complete Stop → Test → Restart Process
+
+**Step 1: Stop the Running Program**
+```bash
+# Press Ctrl+C if running in terminal, or:
+# Windows: tasklist | findstr python, then: taskkill /PID XXXX /F
+# Linux/Mac: ps aux | grep email_processor, then: kill PID_NUMBER
+```
+
+**Step 2: Check System Time**
+```bash
+python email_processor.py --show-time
+```
+This shows:
+- Current local time, UTC time, and EST time
+- System timezone and platform info
+- Whether today is Tuesday
+- When the next Tuesday is
+
+**Step 3: Run 2-Minute Test**
+```bash
+python email_processor.py --check-in-2min
+```
+Watch for:
+- Exact timing confirmation
+- Email search results
+- Processing success/failure
+- Log entries
+
+**Step 4: View Test Results**
+```bash
+# View recent logs
+tail -20 email_processor.log
+
+# Or on Windows:
+powershell "Get-Content email_processor.log -Tail 20"
+
+# Search for specific events:
+grep "Found.*emails" email_processor.log
+grep "Successfully appended" email_processor.log
+```
+
+**Step 5: Restart for Production**
+```bash
+# Default schedule
+python email_processor.py
+
+# Or custom time
+python email_processor.py --custom-time 14:30
 ```
 
 ## Monitoring
