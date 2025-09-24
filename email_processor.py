@@ -519,6 +519,35 @@ class EmailProcessor:
                 break
         
         print("✅ 2-minute check completed")
+    
+    def process_emails_test(self):
+        """Test version of process_emails that bypasses the Tuesday check."""
+        try:
+            self.logger.info("Starting TEST email processing cycle (bypassing Tuesday check)")
+            
+            # Search for new emails - look for emails from any sender with target subject
+            message_ids = self.gmail_service.search_emails(
+                from_email=None,  # Accept emails from any sender
+                subject=self.gmail_subject_filter,
+                label=self.gmail_label,
+                has_attachments=False,  # Changed to False since we're looking for SET files, not CSV attachments
+                since_minutes=None  # Look for any emails with this subject
+            )
+            
+            if not message_ids:
+                self.logger.info("No new emails found")
+                return
+            
+            self.logger.info(f"Found {len(message_ids)} emails to process")
+            
+            # Process each email
+            for message_id in message_ids:
+                self.process_single_email(message_id)
+            
+            self.logger.info("TEST email processing cycle completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error in process_emails_test: {e}")
 
 
 def show_time_info():
