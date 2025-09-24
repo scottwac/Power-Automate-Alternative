@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 APP_NAME="matrixcare-automation"
-APP_DIR="$HOME/matrixcare-automation"
+APP_DIR="$(pwd)"  # Use current directory instead of hardcoded path
 SERVICE_NAME="matrixcare-automation"
 VENV_DIR="$APP_DIR/venv"
 
