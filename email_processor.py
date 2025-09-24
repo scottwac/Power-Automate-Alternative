@@ -418,11 +418,26 @@ class EmailProcessor:
     
     def run_scheduled(self):
         """Run the processor on a schedule for MatrixCare Looker Dash automation."""
-        self.logger.info("Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at 11:20 AM and 12:00 PM")
+        # Convert EST times to local time for proper scheduling
+        est_tz = pytz.timezone('US/Eastern')
         
-        # Schedule the job to run every day at 11:20 and 12:00 (the method will check if it's the right day)
-        schedule.every().tuesday.at("11:20").do(self.process_emails)
-        schedule.every().tuesday.at("12:00").do(self.process_emails)
+        # Convert 11:20 AM EST to local time
+        est_time_1 = datetime.now(est_tz).replace(hour=11, minute=20, second=0, microsecond=0)
+        local_time_1 = est_time_1.astimezone()
+        local_time_1_str = local_time_1.strftime("%H:%M")
+        
+        # Convert 12:00 PM EST to local time  
+        est_time_2 = datetime.now(est_tz).replace(hour=12, minute=0, second=0, microsecond=0)
+        local_time_2 = est_time_2.astimezone()
+        local_time_2_str = local_time_2.strftime("%H:%M")
+        
+        self.logger.info(f"Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at:")
+        self.logger.info(f"  11:20 AM EST ({local_time_1_str} local time)")
+        self.logger.info(f"  12:00 PM EST ({local_time_2_str} local time)")
+        
+        # Schedule the job to run every Tuesday at the converted local times
+        schedule.every().tuesday.at(local_time_1_str).do(self.process_emails)
+        schedule.every().tuesday.at(local_time_2_str).do(self.process_emails)
         
         # Run initial check
         self.process_emails()
@@ -482,8 +497,8 @@ class EmailProcessor:
         # Clear any existing scheduled jobs
         schedule.clear()
         
-        # Schedule the job for today at the calculated time
-        schedule.every().day.at(check_time_str).do(self.process_emails)
+        # Schedule the job for today at the calculated time - use a test version that bypasses day check
+        schedule.every().day.at(check_time_str).do(self.process_emails_test)
         
         print(f"⏰ Email check scheduled for {check_time_str} (in 2 minutes)")
         print(f"   Current time: {current_time}")
@@ -537,6 +552,20 @@ def show_time_info():
     else:
         next_tuesday = now + timedelta(days=days_until_tuesday)
         print(f"Next Tuesday:      {next_tuesday.strftime('%Y-%m-%d')}")
+    
+    print("")
+    print("📅 Default Schedule Times (EST → Local Conversion)")
+    print("-" * 50)
+    
+    # Show what the default schedule times convert to
+    est_morning = datetime.now(est_tz).replace(hour=11, minute=20, second=0, microsecond=0)
+    est_noon = datetime.now(est_tz).replace(hour=12, minute=0, second=0, microsecond=0)
+    
+    local_morning = est_morning.astimezone()
+    local_noon = est_noon.astimezone()
+    
+    print(f"11:20 AM EST  →    {local_morning.strftime('%H:%M')} local time")
+    print(f"12:00 PM EST  →    {local_noon.strftime('%H:%M')} local time")
     
     print("=" * 50)
 
