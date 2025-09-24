@@ -65,6 +65,9 @@ After deployment, use these commands:
 # Restart service
 ./restart.sh
 
+# Manual email check (bypass schedule)
+./manual_check.sh
+
 # Manual service control
 sudo systemctl start matrixcare-automation
 sudo systemctl stop matrixcare-automation
@@ -170,8 +173,11 @@ cd ~/matrixcare-automation
 source venv/bin/activate
 python3 email_processor.py --test-auth
 
-# Test single run
+# Test single run (respects schedule)
 python3 email_processor.py --once
+
+# Manual email check (bypasses schedule)
+python3 email_processor.py --manual-check
 
 # Run unit tests
 cd unit_testing

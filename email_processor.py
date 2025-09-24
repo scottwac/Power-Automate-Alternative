@@ -386,6 +386,35 @@ class EmailProcessor:
         """Run the processing once (useful for testing)."""
         self.process_emails()
     
+    def manual_email_check(self):
+        """Manually check for emails regardless of schedule."""
+        try:
+            self.logger.info("Starting manual email check (bypassing schedule)")
+            
+            # Search for emails - look for emails from any time
+            message_ids = self.gmail_service.search_emails(
+                from_email=self.gmail_from_email,
+                subject=self.gmail_subject_filter,
+                label=self.gmail_label,
+                has_attachments=False,
+                since_minutes=None  # Look for any emails with this subject
+            )
+            
+            if not message_ids:
+                self.logger.info("No emails found with subject: " + self.gmail_subject_filter)
+                return
+            
+            self.logger.info(f"Found {len(message_ids)} emails to process")
+            
+            # Process each email
+            for message_id in message_ids:
+                self.process_single_email(message_id)
+            
+            self.logger.info("Manual email check completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error in manual email check: {e}")
+    
     def run_scheduled(self):
         """Run the processor on a schedule for MatrixCare Looker Dash automation."""
         self.logger.info("Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at 11:20 AM and 12:00 PM")
@@ -407,9 +436,10 @@ def main():
     """Main entry point."""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Email processor to replace Power Automate flow')
+    parser = argparse.ArgumentParser(description='MatrixCare Looker Dashboard Automation')
     parser.add_argument('--once', action='store_true', help='Run once instead of scheduled')
     parser.add_argument('--test-auth', action='store_true', help='Test authentication only')
+    parser.add_argument('--manual-check', action='store_true', help='Manually check for emails regardless of schedule')
     
     args = parser.parse_args()
     
@@ -420,7 +450,9 @@ def main():
             print("✅ Authentication successful for Gmail, Google Drive, and Google Sheets")
             return
         
-        if args.once:
+        if args.manual_check:
+            processor.manual_email_check()
+        elif args.once:
             processor.run_once()
         else:
             processor.run_scheduled()

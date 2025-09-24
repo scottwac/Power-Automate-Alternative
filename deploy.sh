@@ -403,6 +403,25 @@ EOF
 
     chmod +x "$APP_DIR/restart.sh"
     
+    # Create manual check script
+    cat > "$APP_DIR/manual_check.sh" << 'EOF'
+#!/bin/bash
+# MatrixCare Automation Manual Email Check Script
+
+echo "🔍 Starting manual email check for MatrixCare automation..."
+echo "This will search for emails with subject: 'MatrixCare Automation for Looker Dash'"
+echo ""
+
+cd "$(dirname "$0")"
+source venv/bin/activate
+python3 email_processor.py --manual-check
+
+echo ""
+echo "✅ Manual check completed! Check the logs above for results."
+EOF
+
+    chmod +x "$APP_DIR/manual_check.sh"
+    
     print_success "Monitoring scripts created"
 }
 
