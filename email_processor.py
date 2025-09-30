@@ -58,7 +58,7 @@ class EmailProcessor:
         self.gmail_credentials_file = os.getenv('GMAIL_CREDENTIALS_FILE', 'credentials.json')
         self.gmail_token_file = os.getenv('GMAIL_TOKEN_FILE', 'token.json')
         self.gmail_from_email = os.getenv('GMAIL_FROM_EMAIL', 'growatorchard@gmail.com')
-        self.gmail_subject_filter = os.getenv('GMAIL_SUBJECT_FILTER', 'MatrixCare Automation for Looker Dash')
+        self.gmail_subject_filter = os.getenv('GMAIL_SUBJECT_FILTER', 'Test')
         self.gmail_label = os.getenv('GMAIL_LABEL', 'INBOX')
         
         self.drive_credentials_file = os.getenv('GOOGLE_DRIVE_CREDENTIALS_FILE', 'credentials.json')
