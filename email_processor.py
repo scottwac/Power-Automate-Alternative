@@ -57,13 +57,13 @@ class EmailProcessor:
         """Load configuration from environment variables."""
         self.gmail_credentials_file = os.getenv('GMAIL_CREDENTIALS_FILE', 'credentials.json')
         self.gmail_token_file = os.getenv('GMAIL_TOKEN_FILE', 'token.json')
-        self.gmail_from_email = os.getenv('GMAIL_FROM_EMAIL', 'growatorchard@gmail.com')
-        self.gmail_subject_filter = 'Test'  # Force subject to "Test"
+        self.gmail_from_email = os.getenv('GMAIL_FROM_EMAIL')
+        self.gmail_subject_filter = os.getenv('GMAIL_SUBJECT_FILTER')
         self.gmail_label = os.getenv('GMAIL_LABEL', 'INBOX')
         
         self.drive_credentials_file = os.getenv('GOOGLE_DRIVE_CREDENTIALS_FILE', 'credentials.json')
         # Get folder ID, treat '/' or empty as None (root folder)
-        folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID', '1xrzn2LZ-URdb1nx_7MspHyytq6LVk1iq')
+        folder_id = os.getenv('GOOGLE_DRIVE_FOLDER_ID')
         self.drive_folder_id = None if folder_id in ['/', '', None] else folder_id
         
         self.sheets_credentials_file = os.getenv('GOOGLE_SHEETS_CREDENTIALS_FILE', 'credentials.json')

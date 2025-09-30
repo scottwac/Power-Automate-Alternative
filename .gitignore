@@ -17,3 +17,5 @@ email_processor.log.1
 email_processor.log.2
 email_processor.log.3
 newkey.pem  
+setup_env.sh
+newkey.pem
