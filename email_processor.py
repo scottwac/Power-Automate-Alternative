@@ -162,13 +162,21 @@ class EmailProcessor:
             
             self.logger.info("Starting email processing cycle")
             
-            # Search for new emails - look for emails from any sender with target subject
+            # Search for new emails - look for emails from today in EST
+            est_tz = pytz.timezone('US/Eastern')
+            est_now = datetime.now(est_tz)
+            est_start_of_day = est_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Calculate minutes since start of EST day
+            minutes_since_est_midnight = int((est_now - est_start_of_day).total_seconds() / 60)
+            self.logger.info(f"Searching for emails from today in EST (last {minutes_since_est_midnight} minutes)")
+            
             message_ids = self.gmail_service.search_emails(
                 from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
                 has_attachments=True,  # Look for emails WITH CSV attachments
-                since_minutes=None  # Look for any emails with this subject
+                since_minutes=minutes_since_est_midnight  # Look for emails from today in EST
             )
             
             if not message_ids:
@@ -512,13 +520,21 @@ class EmailProcessor:
         try:
             self.logger.info("Starting TEST email processing cycle (bypassing Tuesday check)")
             
-            # Search for new emails - look for emails from any sender with target subject
+            # Search for new emails - look for emails from today in EST
+            est_tz = pytz.timezone('US/Eastern')
+            est_now = datetime.now(est_tz)
+            est_start_of_day = est_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Calculate minutes since start of EST day
+            minutes_since_est_midnight = int((est_now - est_start_of_day).total_seconds() / 60)
+            self.logger.info(f"TEST: Searching for emails from today in EST (last {minutes_since_est_midnight} minutes)")
+            
             message_ids = self.gmail_service.search_emails(
                 from_email=None,  # Accept emails from any sender
                 subject=self.gmail_subject_filter,
                 label=self.gmail_label,
                 has_attachments=True,  # Look for emails WITH CSV attachments
-                since_minutes=None  # Look for any emails with this subject
+                since_minutes=minutes_since_est_midnight  # Look for emails from today in EST
             )
             
             if not message_ids:
