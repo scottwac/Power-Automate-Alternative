@@ -59,23 +59,33 @@ def authenticate_service(service_name, scopes, token_file, credentials_file='cre
             print("5. Paste it back here when prompted")
             print("\n" + "="*50)
             
-            # Get the authorization URL
-            auth_url, _ = flow.authorization_url(prompt='consent')
-            print(f"🔗 Authorization URL:")
-            print(auth_url)
-            print("\n" + "="*50)
-            
-            # Get the authorization code from user
-            auth_code = input("📝 Enter the authorization code: ").strip()
-            
             try:
-                # Exchange the code for credentials
-                flow.fetch_token(code=auth_code)
-                creds = flow.credentials
+                # Use the console-based flow instead of manual URL handling
+                creds = flow.run_console()
                 print(f"✅ {service_name} authenticated successfully!")
             except Exception as e:
-                print(f"❌ Authentication failed: {e}")
-                return False
+                print(f"❌ Console authentication failed, trying manual method: {e}")
+                
+                # Fallback to manual method with proper redirect_uri
+                flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+                
+                # Get the authorization URL
+                auth_url, _ = flow.authorization_url(prompt='consent')
+                print(f"🔗 Authorization URL:")
+                print(auth_url)
+                print("\n" + "="*50)
+                
+                # Get the authorization code from user
+                auth_code = input("📝 Enter the authorization code: ").strip()
+                
+                try:
+                    # Exchange the code for credentials
+                    flow.fetch_token(code=auth_code)
+                    creds = flow.credentials
+                    print(f"✅ {service_name} authenticated successfully!")
+                except Exception as e2:
+                    print(f"❌ Authentication failed: {e2}")
+                    return False
         
         # Save credentials for future use
         with open(token_file, 'wb') as token:
