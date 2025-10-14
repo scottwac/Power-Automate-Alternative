@@ -51,41 +51,70 @@ def authenticate_service(service_name, scopes, token_file, credentials_file='cre
             flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
             
             print(f"\n📋 Manual authentication required for {service_name}")
-            print("Follow these steps:")
-            print("1. Copy the URL below and open it in a web browser")
-            print("2. Sign in to your Google account")
-            print("3. Grant the requested permissions")
-            print("4. Copy the authorization code from the browser")
-            print("5. Paste it back here when prompted")
+            print("Trying different authentication methods...")
             print("\n" + "="*50)
             
+            # Method 1: Try console-based flow first
             try:
-                # Use the console-based flow instead of manual URL handling
+                print("🔄 Attempting console-based authentication...")
                 creds = flow.run_console()
-                print(f"✅ {service_name} authenticated successfully!")
+                print(f"✅ {service_name} authenticated successfully with console method!")
             except Exception as e:
-                print(f"❌ Console authentication failed, trying manual method: {e}")
+                print(f"❌ Console method failed: {e}")
                 
-                # Fallback to manual method with proper redirect_uri
-                flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
-                
-                # Get the authorization URL
-                auth_url, _ = flow.authorization_url(prompt='consent')
-                print(f"🔗 Authorization URL:")
-                print(auth_url)
-                print("\n" + "="*50)
-                
-                # Get the authorization code from user
-                auth_code = input("📝 Enter the authorization code: ").strip()
-                
+                # Method 2: Try manual method with OOB redirect
                 try:
-                    # Exchange the code for credentials
+                    print("🔄 Attempting manual authentication with OOB redirect...")
+                    flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+                    
+                    auth_url, _ = flow.authorization_url(prompt='consent')
+                    print(f"\n🔗 Authorization URL:")
+                    print(auth_url)
+                    print("\nSteps:")
+                    print("1. Copy the URL above and open it in a web browser")
+                    print("2. Sign in to your Google account")
+                    print("3. Grant the requested permissions")
+                    print("4. Copy the authorization code from the browser")
+                    print("5. Paste it back here")
+                    print("\n" + "="*50)
+                    
+                    auth_code = input("📝 Enter the authorization code: ").strip()
                     flow.fetch_token(code=auth_code)
                     creds = flow.credentials
-                    print(f"✅ {service_name} authenticated successfully!")
+                    print(f"✅ {service_name} authenticated successfully with manual method!")
+                    
                 except Exception as e2:
-                    print(f"❌ Authentication failed: {e2}")
-                    return False
+                    print(f"❌ Manual OOB method failed: {e2}")
+                    
+                    # Method 3: Try with localhost redirect
+                    try:
+                        print("🔄 Attempting authentication with localhost redirect...")
+                        flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes)
+                        flow.redirect_uri = 'http://localhost:8080'
+                        
+                        auth_url, _ = flow.authorization_url(prompt='consent')
+                        print(f"\n🔗 Authorization URL:")
+                        print(auth_url)
+                        print("\nSteps:")
+                        print("1. Copy the URL above and open it in a web browser")
+                        print("2. Sign in and grant permissions")
+                        print("3. After redirect, copy the 'code' parameter from the URL")
+                        print("4. Paste it back here")
+                        print("\n" + "="*50)
+                        
+                        auth_code = input("📝 Enter the authorization code: ").strip()
+                        flow.fetch_token(code=auth_code)
+                        creds = flow.credentials
+                        print(f"✅ {service_name} authenticated successfully with localhost method!")
+                        
+                    except Exception as e3:
+                        print(f"❌ All authentication methods failed!")
+                        print(f"Console error: {e}")
+                        print(f"OOB error: {e2}")
+                        print(f"Localhost error: {e3}")
+                        print("\n💡 Suggestion: Check your Google Cloud Console OAuth configuration")
+                        print("   Make sure your OAuth client is configured as 'Desktop Application'")
+                        return False
         
         # Save credentials for future use
         with open(token_file, 'wb') as token:
