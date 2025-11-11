@@ -4,18 +4,18 @@ MatrixCare Looker Dashboard automation email processing script.
 This script:
 1. Monitors Gmail for emails with subject "MatrixCare Automation for Looker Dash"
 2. Processes the email content and appends data to a Google Sheet
-3. Runs on a schedule every other Tuesday at 11:20 AM and 12:00 PM
-4. Appends new data to the existing Google Sheet (doesn't replace)
-5. Designed specifically for MatrixCare Looker Dashboard data automation
+3. Appends new data to the existing Google Sheet (doesn't replace)
+4. Designed specifically for MatrixCare Looker Dashboard data automation
+
+Note: This script runs the automation when executed. Schedule it externally
+using Windows Task Scheduler, cron, or another scheduling tool.
 """
 
 import os
 import sys
-import time
 import logging
 import pytz
-import schedule
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Dict
 from dotenv import load_dotenv
 
@@ -75,10 +75,6 @@ class EmailProcessor:
         self.check_interval_minutes = int(os.getenv('CHECK_INTERVAL_MINUTES', '5'))
         self.max_rows_to_process = int(os.getenv('MAX_ROWS_TO_PROCESS', '5000'))
         
-        # Store reference date for "every other Tuesday" calculation (first Tuesday we want to run)
-        # You can adjust this date to match your desired schedule
-        self.reference_tuesday = datetime(2025, 9, 30)  # A Tuesday to start from
-        
         append_mode = "appending to existing spreadsheet" if self.target_spreadsheet_id else "creating new spreadsheets"
         self.logger.info(f"Configuration loaded - MatrixCare Looker Dash automation, {append_mode}")
     
@@ -108,58 +104,9 @@ class EmailProcessor:
             self.logger.error(f"Error initializing services: {e}")
             raise
     
-    def is_target_tuesday(self) -> bool:
-        """
-        Check if today is one of the target Tuesdays (every other Tuesday).
-        
-        Returns:
-            True if today is a target Tuesday, False otherwise
-        """
-        today = datetime.now().date()
-        
-        # Check if today is a Tuesday (weekday 1)
-        if today.weekday() != 1:
-            return False
-        
-        # Calculate weeks difference from reference Tuesday
-        ref_date = self.reference_tuesday.date()
-        days_diff = (today - ref_date).days
-        weeks_diff = days_diff // 7
-        
-        # Return True if the week difference is even (every other Tuesday)
-        return weeks_diff % 2 == 0
-    
-    def should_check_emails(self) -> bool:
-        """
-        Check if we should check emails based on the schedule.
-        
-        Returns:
-            True if we should check emails, False otherwise
-        """
-        if not self.is_target_tuesday():
-            self.logger.info("Today is not a target Tuesday, skipping email check")
-            return False
-        
-        now = datetime.now()
-        current_time = now.time()
-        
-        # Check if it's 11:20 AM or 12:00 PM
-        if current_time.hour == 11 and current_time.minute == 20:
-            self.logger.info("First check time (11:20 AM) - checking for emails")
-            return True
-        elif current_time.hour == 12 and current_time.minute == 0:
-            self.logger.info("Second check time (12:00 PM) - checking for emails")
-            return True
-        
-        return False
-    
     def process_emails(self):
-        """Main processing function that runs on schedule."""
+        """Main processing function that processes emails."""
         try:
-            # Check if we should process emails based on schedule
-            if not self.should_check_emails():
-                return
-            
             self.logger.info("Starting email processing cycle")
             
             # Search for new emails - look for emails from today in EST
@@ -378,14 +325,10 @@ class EmailProcessor:
         except Exception as e:
             self.logger.error(f"Error in CSV fallback: {e}")
     
-    def run_once(self):
-        """Run the processing once (useful for testing)."""
-        self.process_emails()
-    
     def manual_email_check(self):
-        """Manually check for emails regardless of schedule."""
+        """Check for emails from the last 7 days (broader search than default today-only check)."""
         try:
-            self.logger.info("Starting manual email check (bypassing schedule)")
+            self.logger.info("Starting manual email check (searching last 7 days)")
             
             # Search for emails - look for emails from any sender in the last 7 days
             message_ids = self.gmail_service.search_emails(
@@ -410,196 +353,6 @@ class EmailProcessor:
             
         except Exception as e:
             self.logger.error(f"Error in manual email check: {e}")
-    
-    def run_scheduled(self):
-        """Run the processor on a schedule for MatrixCare Looker Dash automation."""
-        # Convert EST times to local time for proper scheduling
-        est_tz = pytz.timezone('US/Eastern')
-        
-        # Convert 11:20 AM EST to local time
-        est_time_1 = datetime.now(est_tz).replace(hour=11, minute=20, second=0, microsecond=0)
-        local_time_1 = est_time_1.astimezone()
-        local_time_1_str = local_time_1.strftime("%H:%M")
-        
-        # Convert 12:00 PM EST to local time  
-        est_time_2 = datetime.now(est_tz).replace(hour=12, minute=0, second=0, microsecond=0)
-        local_time_2 = est_time_2.astimezone()
-        local_time_2_str = local_time_2.strftime("%H:%M")
-        
-        self.logger.info(f"Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at:")
-        self.logger.info(f"  11:20 AM EST ({local_time_1_str} local time)")
-        self.logger.info(f"  12:00 PM EST ({local_time_2_str} local time)")
-        
-        # Schedule the job to run every Tuesday at the converted local times
-        schedule.every().tuesday.at(local_time_1_str).do(self.process_emails)
-        schedule.every().tuesday.at(local_time_2_str).do(self.process_emails)
-        
-        # Run initial check
-        self.process_emails()
-        
-        # Keep the script running
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
-    
-    def run_custom_schedule(self, est_time: str):
-        """Run the processor at a custom time in EST timezone."""
-        try:
-            # Validate time format (HH:MM)
-            datetime.strptime(est_time, "%H:%M")
-        except ValueError:
-            raise ValueError("Time must be in HH:MM format (24-hour), e.g., '14:30' for 2:30 PM")
-        
-        # Convert EST time to local time for scheduling
-        est_tz = pytz.timezone('US/Eastern')
-        local_tz = pytz.timezone('UTC')  # Default to UTC, will be converted to system local time
-        
-        # Parse the EST time
-        est_hour, est_minute = map(int, est_time.split(':'))
-        
-        # Create a datetime object for today at the specified EST time
-        today_est = datetime.now(est_tz).replace(hour=est_hour, minute=est_minute, second=0, microsecond=0)
-        
-        # Convert to local time
-        today_local = today_est.astimezone()
-        local_time_str = today_local.strftime("%H:%M")
-        
-        self.logger.info(f"Starting MatrixCare Looker Dash scheduler - checking every other Tuesday at {est_time} EST ({local_time_str} local time)")
-        
-        # Schedule the job to run every Tuesday at the converted local time
-        schedule.every().tuesday.at(local_time_str).do(self.process_emails)
-        
-        # Run initial check
-        self.process_emails()
-        
-        # Keep the script running
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
-    
-    def check_in_2_minutes(self):
-        """Schedule an email check to run in exactly 2 minutes."""
-        # Calculate the time 2 minutes from now
-        check_time = datetime.now() + timedelta(minutes=2)
-        check_time_str = check_time.strftime("%H:%M")
-        
-        # Get current time for logging
-        current_time = datetime.now().strftime("%H:%M:%S")
-        
-        self.logger.info(f"Current time: {current_time}")
-        self.logger.info(f"Scheduling email check for {check_time_str} (in 2 minutes)")
-        
-        # Clear any existing scheduled jobs
-        schedule.clear()
-        
-        # Schedule the job for today at the calculated time - use a test version that bypasses day check
-        schedule.every().day.at(check_time_str).do(self.process_emails_test)
-        
-        print(f"⏰ Email check scheduled for {check_time_str} (in 2 minutes)")
-        print(f"   Current time: {current_time}")
-        print(f"   Will check for emails with subject: '{self.gmail_subject_filter}'")
-        print("   Waiting...")
-        
-        # Keep the script running until the scheduled time and a bit after
-        start_time = datetime.now()
-        max_wait_time = timedelta(minutes=5)  # Wait up to 5 minutes total
-        
-        while datetime.now() - start_time < max_wait_time:
-            schedule.run_pending()
-            time.sleep(10)  # Check every 10 seconds for more responsive timing
-            
-            # Check if we've passed the scheduled time by more than 1 minute
-            if datetime.now() > check_time + timedelta(minutes=1):
-                self.logger.info("Scheduled check completed, exiting")
-                break
-        
-        print("✅ 2-minute check completed")
-    
-    def process_emails_test(self):
-        """Test version of process_emails that bypasses the Tuesday check."""
-        try:
-            self.logger.info("Starting TEST email processing cycle (bypassing Tuesday check)")
-            
-            # Search for new emails - look for emails from today in EST
-            est_tz = pytz.timezone('US/Eastern')
-            est_now = datetime.now(est_tz)
-            est_start_of_day = est_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            # Calculate minutes since start of EST day
-            minutes_since_est_midnight = int((est_now - est_start_of_day).total_seconds() / 60)
-            self.logger.info(f"TEST: Searching for emails from today in EST (last {minutes_since_est_midnight} minutes)")
-            
-            message_ids = self.gmail_service.search_emails(
-                from_email=None,  # Accept emails from any sender
-                subject=self.gmail_subject_filter,
-                label=self.gmail_label,
-                has_attachments=True,  # Look for emails WITH CSV attachments
-                since_minutes=minutes_since_est_midnight  # Look for emails from today in EST
-            )
-            
-            if not message_ids:
-                self.logger.info("No new emails found")
-                return
-            
-            self.logger.info(f"Found {len(message_ids)} emails to process")
-            
-            # Process each email
-            for message_id in message_ids:
-                self.process_single_email(message_id)
-            
-            self.logger.info("TEST email processing cycle completed")
-            
-        except Exception as e:
-            self.logger.error(f"Error in process_emails_test: {e}")
-
-
-def show_time_info():
-    """Display current system time and timezone information."""
-    import platform
-    
-    # Get current time in different formats
-    now = datetime.now()
-    utc_now = datetime.utcnow()
-    
-    # Get EST time
-    est_tz = pytz.timezone('US/Eastern')
-    est_now = now.astimezone(est_tz)
-    
-    print("🕐 Current Time Information")
-    print("=" * 50)
-    print(f"System Local Time: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"UTC Time:          {utc_now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    print(f"EST Time:          {est_now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
-    print(f"System Timezone:   {now.astimezone().tzinfo}")
-    print(f"Platform:          {platform.system()} {platform.release()}")
-    
-    # Show day of week for schedule checking
-    weekday_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    print(f"Day of Week:       {weekday_names[now.weekday()]} (weekday {now.weekday()})")
-    
-    # Calculate next Tuesday for reference
-    days_until_tuesday = (1 - now.weekday()) % 7
-    if days_until_tuesday == 0 and now.weekday() == 1:
-        print(f"Today Status:      Today IS Tuesday!")
-    else:
-        next_tuesday = now + timedelta(days=days_until_tuesday)
-        print(f"Next Tuesday:      {next_tuesday.strftime('%Y-%m-%d')}")
-    
-    print("")
-    print("📅 Default Schedule Times (EST → Local Conversion)")
-    print("-" * 50)
-    
-    # Show what the default schedule times convert to
-    est_morning = datetime.now(est_tz).replace(hour=11, minute=20, second=0, microsecond=0)
-    est_noon = datetime.now(est_tz).replace(hour=12, minute=0, second=0, microsecond=0)
-    
-    local_morning = est_morning.astimezone()
-    local_noon = est_noon.astimezone()
-    
-    print(f"11:20 AM EST  →    {local_morning.strftime('%H:%M')} local time")
-    print(f"12:00 PM EST  →    {local_noon.strftime('%H:%M')} local time")
-    
-    print("=" * 50)
 
 
 def main():
@@ -607,15 +360,8 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='MatrixCare Looker Dashboard Automation')
-    parser.add_argument('--once', action='store_true', help='Run once instead of scheduled')
     parser.add_argument('--test-auth', action='store_true', help='Test authentication only')
-    parser.add_argument('--manual-check', action='store_true', help='Manually check for emails regardless of schedule')
-    parser.add_argument('--custom-time', type=str, metavar='HH:MM', 
-                       help='Run on schedule at custom time in EST (24-hour format, e.g., 14:30 for 2:30 PM)')
-    parser.add_argument('--check-in-2min', action='store_true', 
-                       help='Check for emails in exactly 2 minutes from now (useful for testing)')
-    parser.add_argument('--show-time', action='store_true', 
-                       help='Show current system time and timezone information')
+    parser.add_argument('--manual-check', action='store_true', help='Check for emails from last 7 days (bypasses today-only filter)')
     
     args = parser.parse_args()
     
@@ -626,20 +372,11 @@ def main():
             print("✅ Authentication successful for Gmail, Google Drive, and Google Sheets")
             return
         
-        if args.show_time:
-            show_time_info()
-            return
-        
         if args.manual_check:
             processor.manual_email_check()
-        elif args.once:
-            processor.run_once()
-        elif args.check_in_2min:
-            processor.check_in_2_minutes()
-        elif args.custom_time:
-            processor.run_custom_schedule(args.custom_time)
         else:
-            processor.run_scheduled()
+            # Default behavior: run the automation once
+            processor.process_emails()
             
     except KeyboardInterrupt:
         print("\n🛑 Process interrupted by user")
