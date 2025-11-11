@@ -104,37 +104,62 @@ class EmailProcessor:
             self.logger.error(f"Error initializing services: {e}")
             raise
     
-    def process_emails(self):
-        """Main processing function that processes emails."""
+    def process_emails(self, find_recent=False):
+        """
+        Main processing function that processes emails.
+        
+        Args:
+            find_recent: If True, find the most recent matching email regardless of date.
+                        If False, only search for emails from today in EST.
+        """
         try:
-            self.logger.info("Starting email processing cycle")
+            if find_recent:
+                self.logger.info("Starting email processing cycle - searching for most recent matching email")
+            else:
+                self.logger.info("Starting email processing cycle")
             
-            # Search for new emails - look for emails from today in EST
-            est_tz = pytz.timezone('US/Eastern')
-            est_now = datetime.now(est_tz)
-            est_start_of_day = est_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            # Calculate minutes since start of EST day
-            minutes_since_est_midnight = int((est_now - est_start_of_day).total_seconds() / 60)
-            self.logger.info(f"Searching for emails from today in EST (last {minutes_since_est_midnight} minutes)")
-            
-            message_ids = self.gmail_service.search_emails(
-                from_email=None,  # Accept emails from any sender
-                subject=self.gmail_subject_filter,
-                label=self.gmail_label,
-                has_attachments=True,  # Look for emails WITH CSV attachments
-                since_minutes=minutes_since_est_midnight  # Look for emails from today in EST
-            )
+            # Search for emails
+            if find_recent:
+                # Search without time filter to find most recent email
+                self.logger.info("Searching for most recent email matching criteria (no date restriction)")
+                message_ids = self.gmail_service.search_emails(
+                    from_email=None,  # Accept emails from any sender
+                    subject=self.gmail_subject_filter,
+                    label=self.gmail_label,
+                    has_attachments=True,  # Look for emails WITH CSV attachments
+                    since_minutes=None  # No time filter - find most recent
+                )
+            else:
+                # Search for emails from today in EST
+                est_tz = pytz.timezone('US/Eastern')
+                est_now = datetime.now(est_tz)
+                est_start_of_day = est_now.replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                # Calculate minutes since start of EST day
+                minutes_since_est_midnight = int((est_now - est_start_of_day).total_seconds() / 60)
+                self.logger.info(f"Searching for emails from today in EST (last {minutes_since_est_midnight} minutes)")
+                
+                message_ids = self.gmail_service.search_emails(
+                    from_email=None,  # Accept emails from any sender
+                    subject=self.gmail_subject_filter,
+                    label=self.gmail_label,
+                    has_attachments=True,  # Look for emails WITH CSV attachments
+                    since_minutes=minutes_since_est_midnight  # Look for emails from today in EST
+                )
             
             if not message_ids:
-                self.logger.info("No new emails found")
+                self.logger.info("No matching emails found")
                 return
             
-            self.logger.info(f"Found {len(message_ids)} emails to process")
-            
-            # Process each email
-            for message_id in message_ids:
-                self.process_single_email(message_id)
+            if find_recent:
+                # Only process the most recent email (first result)
+                self.logger.info(f"Found {len(message_ids)} matching emails, processing most recent one")
+                self.process_single_email(message_ids[0])
+            else:
+                self.logger.info(f"Found {len(message_ids)} emails to process")
+                # Process each email
+                for message_id in message_ids:
+                    self.process_single_email(message_id)
             
             self.logger.info("Email processing cycle completed")
             
@@ -362,6 +387,7 @@ def main():
     parser = argparse.ArgumentParser(description='MatrixCare Looker Dashboard Automation')
     parser.add_argument('--test-auth', action='store_true', help='Test authentication only')
     parser.add_argument('--manual-check', action='store_true', help='Check for emails from last 7 days (bypasses today-only filter)')
+    parser.add_argument('--recent', action='store_true', help='Find and process the most recent matching email (no date restriction)')
     
     args = parser.parse_args()
     
@@ -374,8 +400,11 @@ def main():
         
         if args.manual_check:
             processor.manual_email_check()
+        elif args.recent:
+            # Find and process the most recent matching email
+            processor.process_emails(find_recent=True)
         else:
-            # Default behavior: run the automation once
+            # Default behavior: run the automation once (today's emails only)
             processor.process_emails()
             
     except KeyboardInterrupt:

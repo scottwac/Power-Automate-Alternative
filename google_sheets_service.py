@@ -44,12 +44,24 @@ class GoogleSheetsService:
         # If credentials are invalid or don't exist, get new ones
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                try:
+                    creds.refresh(Request())
+                except Exception as e:
+                    error_msg = str(e)
+                    if 'invalid_grant' in error_msg.lower():
+                        logger.error(f"Token refresh failed: {error_msg}")
+                        logger.error("The refresh token has expired or been revoked.")
+                        logger.error("Please run 'python manual_auth.py' to re-authenticate.")
+                        # Delete the invalid token file
+                        if os.path.exists(self.token_file):
+                            os.remove(self.token_file)
+                            logger.info(f"Removed invalid token file: {self.token_file}")
+                        raise Exception(f"Authentication failed. Please run 'python manual_auth.py' to re-authenticate. Error: {error_msg}")
+                    else:
+                        raise
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_file, SCOPES
-                )
-                creds = flow.run_local_server(port=0)
+                logger.error("No valid credentials found. Please run 'python manual_auth.py' to authenticate.")
+                raise Exception("No valid credentials found. Please run 'python manual_auth.py' to authenticate.")
             
             # Save credentials for future use
             with open(self.token_file, 'wb') as token:
